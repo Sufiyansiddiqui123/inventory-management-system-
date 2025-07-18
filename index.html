@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Inventory Management System</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 20px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: #f0f0f0;
+      min-height: 100vh;
+    }
+    h1 {
+      text-align: center;
+      color: #f0f0f0;
+      text-shadow: 1px 1px 3px rgba(0,0,0,0.3);
+      margin-bottom: 30px;
+    }
+    input, button, select {
+      margin: 5px;
+      padding: 10px;
+      border-radius: 5px;
+      border: none;
+      font-size: 1rem;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+    input, select {
+      width: calc(100% - 30px);
+      max-width: 300px;
+      display: block;
+    }
+    button {
+      background-color: #ff6f61;
+      color: white;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      width: 100%;
+      max-width: 320px;
+    }
+    button:hover {
+      background-color: #e65b50;
+    }
+    .hidden {
+      display: none;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-top: 20px;
+      background: rgba(255, 255, 255, 0.9);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+      border-radius: 8px;
+      overflow: hidden;
+      color: #333;
+    }
+    th, td {
+      border: none;
+      padding: 15px 10px;
+      text-align: left;
+    }
+    th {
+      background-color: #ff6f61;
+      color: white;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+    #inventory-section {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: rgba(255, 255, 255, 0.85);
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 6px 15px rgba(0,0,0,0.3);
+    }
+    #auth-section {
+      max-width: 400px;
+      margin: 0 auto 40px auto;
+      background: rgba(255, 255, 255, 0.85);
+      padding: 20px;
+      box-shadow: 0 6px 15px rgba(0,0,0,0.3);
+      border-radius: 10px;
+    }
+    label {
+      display: block;
+      margin-top: 10px;
+      font-weight: 600;
+      color: #333;
+    }
+    .filter-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .filter-row input {
+      width: 150px;
+      max-width: none;
+    }
+    .action-buttons button {
+      width: auto;
+      max-width: none;
+      margin: 2px;
+      padding: 5px 10px;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>Inventory Management System</h1>
+
+  <div style="text-align:center; margin-bottom: 20px;">
+    <img src="https://cdn-icons-png.flaticon.com/512/263/263142.png" alt="Inventory Icon" width="100" height="100" />
+  </div>
+
+  <div id="auth-section">
+    <h2>Register</h2>
+    <input type="text" id="reg-username" placeholder="Username" />
+    <input type="password" id="reg-password" placeholder="Password" />
+    <button onclick="register()">Register</button>
+
+    <h2>Login</h2>
+    <input type="text" id="login-username" placeholder="Username" />
+    <input type="password" id="login-password" placeholder="Password" />
+    <button onclick="login()">Login</button>
+  </div>
+
+  <div id="inventory-section" class="hidden">
+    <button onclick="logout()" style="float: right;">Logout</button>
+    <div style="clear: both;"></div>
+    
+    <h2>Add Inventory Item</h2>
+    <input type="text" id="item-name" placeholder="Name" />
+    <input type="number" id="item-quantity" placeholder="Quantity" />
+    <input type="number" step="0.01" id="item-price" placeholder="Price" />
+    <input type="text" id="item-category" placeholder="Category (optional)" />
+    <input type="text" id="item-description" placeholder="Description (optional)" />
+    <button onclick="addItem()">Add Item</button>
+
+    <!-- Search and Filter Section -->
+    <h2>Search & Filter</h2>
+    <div class="filter-row">
+      <input type="text" id="search-name" placeholder="Search by name" onkeyup="applyFilters()" />
+      <input type="number" id="min-price" placeholder="Min Price" onchange="applyFilters()" />
+      <input type="number" id="max-price" placeholder="Max Price" onchange="applyFilters()" />
+      <input type="number" id="min-quantity" placeholder="Min Quantity" onchange="applyFilters()" />
+      <input type="number" id="max-quantity" placeholder="Max Quantity" onchange="applyFilters()" />
+      <button onclick="clearFilters()" style="width: auto; max-width: none;">Clear Filters</button>
+    </div>
+
+    <!-- Statistics Section -->
+    <div id="stats-section" style="background: rgba(255,255,255,0.9); padding: 15px; border-radius: 8px; margin-bottom: 20px; color: #333;">
+      <h3>Inventory Statistics</h3>
+      <div id="stats-content">Loading statistics...</div>
+    </div>
+
+    <!-- Advanced Operations Section -->
+    <div style="background: rgba(255,255,255,0.9); padding: 15px; border-radius: 8px; margin-bottom: 20px; color: #333;">
+      <h3>Advanced Operations</h3>
+      <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+        <button onclick="showBulkOperations()" style="width: auto; max-width: none;">Bulk Operations</button>
+        <button onclick="exportInventory()" style="width: auto; max-width: none;">Export Data</button>
+        <button onclick="loadStatistics()" style="width: auto; max-width: none;">Refresh Stats</button>
+      </div>
+    </div>
+
+    <!-- Bulk Operations Modal -->
+    <div id="bulk-modal" class="hidden" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+      <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 8px; color: #333; min-width: 300px;">
+        <h3>Bulk Operations</h3>
+        <select id="bulk-operation" style="width: 100%; margin-bottom: 10px;">
+          <option value="bulk_price_increase">Increase Price</option>
+          <option value="bulk_category_update">Update Category</option>
+          <option value="bulk_quantity_adjust">Adjust Quantity</option>
+        </select>
+        <input type="text" id="bulk-value" placeholder="Value" style="width: calc(100% - 20px); margin-bottom: 10px;" />
+        <div style="text-align: center;">
+          <button onclick="executeBulkOperation()" style="width: auto; max-width: none; margin: 5px;">Execute</button>
+          <button onclick="closeBulkModal()" style="width: auto; max-width: none; margin: 5px;">Cancel</button>
+        </div>
+        <div id="selected-items" style="margin-top: 10px; font-size: 0.9em;">Select items from the table first</div>
+      </div>
+    </div>
+
+    <h2>Inventory List</h2>
+    <table id="inventory-table">
+      <thead>
+        <tr>
+          <th><input type="checkbox" id="select-all" onchange="toggleSelectAll()"></th>
+          <th>ID</th><th>Name</th><th>Quantity</th><th>Price</th><th>Category</th><th>Actions</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <script>
+    let token = null;
+
+    function showMessage(msg) {
+      alert(msg);
+    }
+
+    async function register() {
+      const username = document.getElementById('reg-username').value;
+      const password = document.getElementById('reg-password').value;
+      if (!username || !password) {
+        showMessage('Please enter username and password');
+        return;
+      }
+      try {
+        const res = await fetch('http://localhost:3000/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: username, password: password }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          showMessage('Registration successful. Please login.');
+          document.getElementById('reg-username').value = '';
+          document.getElementById('reg-password').value = '';
+        } else {
+          showMessage(data.message || 'Registration failed');
+        }
+      } catch (err) {
+        showMessage('Error: ' + err.message);
+      }
+    }
+
+    async function login() {
+      const username = document.getElementById('login-username').value;
+      const password = document.getElementById('login-password').value;
+      if (!username || !password) {
+        showMessage('Please enter username and password');
+        return;
+      }
+      try {
+        const res = await fetch('http://localhost:3000/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: username, password: password }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          token = data.token;
+          document.getElementById('auth-section').classList.add('hidden');
+          document.getElementById('inventory-section').classList.remove('hidden');
+          loadInventory();
+          loadStatistics();
+        } else {
+          showMessage(data.message || 'Login failed');
+        }
+      } catch (err) {
+        showMessage('Error: ' + err.message);
+      }
+    }
+
+    async function loadInventory(queryParams = '') {
+      try {
+        const res = await fetch('http://localhost:3000/inventory' + queryParams, {
+          headers: { Authorization: 'Bearer ' + token },
+        });
+        const data = await res.json();
+        if (res.ok) {
+          const tbody = document.querySelector('#inventory-table tbody');
+          tbody.innerHTML = '';
+          data.forEach(function(item) {
+            const tr = document.createElement('tr');
+            tr.innerHTML = 
+              '<td><input type="checkbox" class="item-checkbox" value="' + item.id + '"></td>' +
+              '<td>' + item.id + '</td>' +
+              '<td>' + item.name + '</td>' +
+              '<td>' + item.quantity + '</td>' +
+              '<td>$' + item.price.toFixed(2) + '</td>' +
+              '<td>' + (item.category || 'General') + '</td>' +
+              '<td class="action-buttons">' +
+                '<button onclick="editItem(' + item.id + ')">Edit</button> ' +
+                '<button onclick="quickAdjust(' + item.id + ', \'increment_quantity\')">+1</button> ' +
+                '<button onclick="quickAdjust(' + item.id + ', \'decrement_quantity\')">-1</button> ' +
+                '<button onclick="deleteItem(' + item.id + ')">Delete</button>' +
+              '</td>';
+            tbody.appendChild(tr);
+          });
+          loadStatistics();
+        } else {
+          showMessage(data.message || 'Failed to load inventory');
+        }
+      } catch (err) {
+        showMessage('Error: ' + err.message);
+      }
+    }
+
+    async function addItem() {
+      const name = document.getElementById('item-name').value;
+      const quantity = parseInt(document.getElementById('item-quantity').value);
+      const price = parseFloat(document.getElementById('item-price').value);
+      const category = document.getElementById('item-category').value;
+      const description = document.getElementById('item-description').value;
+      
+      if (!name || isNaN(quantity) || isNaN(price)) {
+        showMessage('Please enter valid item details');
+        return;
+      }
+      try {
+        const res = await fetch('http://localhost:3000/inventory', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: 'Bearer ' + token,
+          },
+          body: JSON.stringify({ 
+            name: name, 
+            quantity: quantity, 
+            price: price,
+            category: category,
+            description: description
+          }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          showMessage('Item added successfully!');
+          document.getElementById('item-name').value = '';
+          document.getElementById('item-quantity').value = '';
+          document.getElementById('item-price').value = '';
+          document.getElementById('item-category').value = '';
+          document.getElementById('item-description').value = '';
+          loadInventory();
+          loadStatistics();
+        } else {
+          showMessage(data.message || 'Failed to add item');
+        }
+      } catch (err) {
+        showMessage('Error: ' + err.message);
+      }
+    }
+
+    async function deleteItem(id) {
+      if (!confirm('Are you sure you want to delete this item?')) return;
+      try {
+        const res = await fetch('http://localhost:3000/inventory/' + id, {
+          method: 'DELETE',
+          headers: { Authorization: 'Bearer ' + token },
+        });
+        const data = await res.json();
+        if (res.ok) {
+          showMessage('Item deleted successfully!');
+          loadInventory();
+          loadStatistics();
+        } else {
+          showMessage(data.message || 'Failed to delete item');
+        }
+      } catch (err) {
+        showMessage('Error: ' + err.message);
+      }
+    }
+
+    function logout() {
+      token = null;
+      document.getElementById('auth-section').classList.remove('hidden');
+      document.getElementById('inventory-section').classList.add('hidden');
+      document.getElementById('login-username').value = '';
+      document.getElementById('login-password').value = '';
+    }
+
+    // Search and Filter Functions
+    async function applyFilters() {
+      const search = document.getElementById('search-name').value;
+      const minPrice = document.getElementById('min-price').value;
+      const maxPrice = document.getElementById('max-price').value;
+      const minQuantity = document.getElementById('min-quantity').value;
+      const maxQuantity = document.getElementById('max-quantity').value;
+      
+      const params = new URLSearchParams();
+      if (search) params.append('search', search);
+      if (minPrice) params.append('minPrice', minPrice);
+      if (maxPrice) params.append('maxPrice', maxPrice);
+      if (minQuantity) params.append('minQuantity', minQuantity);
+      if (maxQuantity) params.append('maxQuantity', maxQuantity);
+      
+      const queryString = params.toString() ? '?' + params.toString() : '';
+      loadInventory(queryString);
+    }
+
+    function clearFilters() {
+      document.getElementById('search-name').value = '';
+      document.getElementById('min-price').value = '';
+      document.getElementById('max-price').value = '';
+      document.getElementById('min-quantity').value = '';
+      document.getElementById('max-quantity').value = '';
+      loadInventory();
+    }
+
+    // Statistics Functions
+    async function loadStatistics() {
+      try {
+        const res = await fetch('http://localhost:3000/inventory/stats/summary', {
+          headers: { Authorization: 'Bearer ' + token },
+        });
+        const data = await res.json();
+        if (res.ok) {
+          document.getElementById('stats-content').innerHTML = 
+            '<strong>Total Items:</strong> ' + data.totalItems + ' | ' +
+            '<strong>Total Value:</strong> $' + data.totalValue.toFixed(2) + ' | ' +
+            '<strong>Total Quantity:</strong> ' + data.totalQuantity + ' | ' +
+            '<strong>Categories:</strong> ' + (data.categories.length > 0 ? data.categories.join(', ') : 'None') + ' | ' +
+            '<strong>Low Stock Items:</strong> ' + data.lowStockItems.length + ' | ' +
+            '<strong>Average Price:</strong> $' + data.averagePrice.toFixed(2);
+        }
+      } catch (err) {
+        document.getElementById('stats-content').innerHTML = 'Error loading statistics';
+      }
+    }
+
+    // Advanced Operations Functions
+    async function quickAdjust(id, operation) {
+      try {
+        const res = await fetch('http://localhost:3000/inventory/' + id, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: 'Bearer ' + token,
+          },
+          body: JSON.stringify({ operation: operation, value: 1 }),
+        });
+        if (res.ok) {
+          loadInventory();
+          loadStatistics();
+        } else {
+          showMessage('Failed to adjust item');
+        }
+      } catch (err) {
+        showMessage('Error: ' + err.message);
+      }
+    }
+
+    async function editItem(id) {
+      const newName = prompt('Enter new name (leave empty to keep current):');
+      const newQuantity = prompt('Enter new quantity (leave empty to keep current):');
+      const newPrice = prompt('Enter new price (leave empty to keep current):');
+      const newCategory = prompt('Enter new category (leave empty to keep current):');
+      
+      if (newName !== null || newQuantity !== null || newPrice !== null || newCategory !== null) {
+        try {
+          const updateData = {};
+          if (newName && newName.trim()) updateData.name = newName.trim();
+          if (newQuantity && !isNaN(parseInt(newQuantity))) updateData.quantity = parseInt(newQuantity);
+          if (newPrice && !isNaN(parseFloat(newPrice))) updateData.price = parseFloat(newPrice);
+          if (newCategory && newCategory.trim()) updateData.category = newCategory.trim();
+          
+          if (Object.keys(updateData).length > 0) {
+            const res = await fetch('http://localhost:3000/inventory/' + id, {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: 'Bearer ' + token,
+              },
+              body: JSON.stringify(updateData),
+            });
+            if (res.ok) {
+              showMessage('Item updated successfully!');
+              loadInventory();
+              loadStatistics();
+            } else {
+              showMessage('Failed to update item');
+            }
+          }
+        } catch (err) {
+          showMessage('Error: ' + err.message);
+        }
+      }
+    }
+
+    // Bulk Operations Functions
+    function toggleSelectAll() {
+      const selectAll = document.getElementById('select-all');
+      const checkboxes = document.querySelectorAll('.item-checkbox');
+      checkboxes.forEach(cb => cb.checked = selectAll.checked);
+    }
+
+    function showBulkOperations() {
+      const selectedItems = Array.from(document.querySelectorAll('.item-checkbox:checked')).map(cb => cb.value);
+      if (selectedItems.length === 0) {
+        showMessage('Please select items first');
+        return;
+      }
+      document.getElementById('selected-items').innerHTML = 'Selected items: ' + selectedItems.length;
+      document.getElementById('bulk-modal').classList.remove('hidden');
+    }
+
+    function closeBulkModal() {
+      document.getElementById('bulk-modal').classList.add('hidden');
+      document.getElementById('bulk-value').value = '';
+    }
+
+    async function executeBulkOperation() {
+      const operation = document.getElementById('bulk-operation').value;
+      const value = document.getElementById('bulk-value').value;
+      const selectedItems = Array.from(document.querySelectorAll('.item-checkbox:checked')).map(cb => cb.value);
+      
+      if (!value) {
+        showMessage('Please enter a value');
+        return;
+      }
+      
+      try {
+        const res = await fetch('http://localhost:3000/inventory/bulk', {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: 'Bearer ' + token,
+          },
+          body: JSON.stringify({ operation: operation, ids: selectedItems, value: value }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          showMessage(data.message);
+          closeBulkModal();
+          loadInventory();
+          loadStatistics();
+          // Uncheck all items
+          document.getElementById('select-all').checked = false;
+          document.querySelectorAll('.item-checkbox').forEach(cb => cb.checked = false);
+        } else {
+          showMessage('Bulk operation failed');
+        }
+      } catch (err) {
+        showMessage('Error: ' + err.message);
+      }
+    }
+
+    // Export Function
+    function exportInventory() {
+      fetch('http://localhost:3000/inventory', {
+        headers: { Authorization: 'Bearer ' + token },
+      })
+      .then(res => res.json())
+      .then(data => {
+        const csv = 'ID,Name,Quantity,Price,Category,Description\n' + 
+          data.map(item => 
+            item.id + ',' + 
+            '"' + item.name + '",' + 
+            item.quantity + ',' + 
+            item.price + ',' + 
+            '"' + (item.category || 'General') + '",' + 
+            '"' + (item.description || '') + '"'
+          ).join('\n');
+        
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'inventory_export_' + new Date().toISOString().split('T')[0] + '.csv';
+        a.click();
+        window.URL.revokeObjectURL(url);
+        showMessage('Inventory exported successfully!');
+      })
+      .catch(err => showMessage('Export failed: ' + err.message));
+    }
+  </script>
+</body>
+</html>
